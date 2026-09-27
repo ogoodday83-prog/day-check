@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>루틴 관리 MVP</title>
+  <style>
+    :root {
+      --primary-color: #4F46E5;
+      --primary-hover: #4338CA;
+      --bg-color: #F3F4F6;
+      --card-bg: #FFFFFF;
+      --text-main: #1F2937;
+      --text-muted: #6B7280;
+      --border-color: #E5E7EB;
+      --success-color: #10B981;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      display: flex;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px 12px;
+    }
+
+    .app-container {
+      width: 100%;
+      max-width: 480px;
+      background: var(--card-bg);
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      height: fit-content;
+    }
+
+    /* Header & Dashboard */
+    header {
+      padding: 24px 20px 16px;
+      background: linear-gradient(135deg, #6366F1, var(--primary-color));
+      color: white;
+    }
+
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .date-display {
+      font-size: 0.9rem;
+      opacity: 0.9;
+    }
+
+    .app-title {
+      font-size: 1.4rem;
+      font-weight: 700;
+    }
+
+    .progress-card {
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(8px);
+      border-radius: 12px;
+      padding: 16px;
+    }
+
+    .progress-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+
+    .progress-bar-bg {
+      width: 100%;
+      height: 10px;
+      background-color: rgba(255, 255, 255, 0.3);
+      border-radius: 5px;
+      overflow: hidden;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      width: 0%;
+      background-color: #34D399;
+      border-radius: 5px;
+      transition: width 0.3s ease;
+    }
+
+    /* Tabs & Navigation */
+    .tab-bar {
+      display: flex;
+      border-bottom: 1px solid var(--border-color);
+      background: #FAFAFA;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 14px;
+      border: none;
+      background: none;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+    }
+
+    .tab-btn.active {
+      color: var(--primary-color);
+      border-bottom-color: var(--primary-color);
+      background: white;
+    }
+
+    /* Main Content */
+    main {
+      padding: 20px;
+    }
+
+    .view-section {
+      display: none;
+    }
+
+    .view-section.active {
+      display: block;
+    }
+
+    /* Routine Item List */
+    .section-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* Voice Button */
+    .speak-btn {
+      background: #EEF2FF;
+      color: var(--primary-color);
+      border: 1px solid #C7D2FE;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.2s;
+    }
+
+    .speak-btn:hover {
+      background: #E0E7FF;
+    }
+
+    .speak-btn.speaking {
+      background: #FEF2F2;
+      color: #EF4444;
+      border-color: #FCA5A5;
+    }
+
+    .routine-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .routine-item {
+      display: flex;
+      align-items: center;
+      padding: 14px 16px;
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      background: white;
+      transition: border-color 0.2s, background 0.2s;
+    }
+
+    .routine-item.completed {
+      background: #F9FAFB;
+      border-color: #E5E7EB;
+    }
+
+    .routine-checkbox {
+      width: 22px;
+      height: 22px;
+      accent-color: var(--primary-color);
+      cursor: pointer;
+      margin-right: 14px;
+    }
+
+    .routine-details {
+      flex: 1;
+    }
+
+    .routine-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-main);
+      margin-bottom: 4px;
+    }
+
+    .routine-item.completed .routine-title {
+      text-decoration: line-through;
+      color: var(--text-muted);
+    }
+
+    .routine-meta {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      display: flex;
+      gap: 8px;
+    }
+
+    .category-tag {
+      background: #EEF2FF;
+      color: var(--primary-color);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 500;
+    }
+
+    .action-btn-group {
+      display: flex;
+      gap: 4px;
+    }
+
+    .icon-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 0.85rem;
+      padding: 4px 6px;
+      border-radius: 4px;
+    }
+
+    .icon-btn:hover {
+      background: #F3F4F6;
+    }
+
+    .delete-btn {
+      color: #EF4444;
+    }
+
+    /* Form Styling */
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: var(--text-main);
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      font-size: 0.95rem;
+      outline: none;
+    }
+
+    .form-control:focus {
+      border-color: var(--primary-color);
+    }
+
+    .days-selector {
+      display: flex;
+      gap: 6px;
+      justify-content: space-between;
+    }
+
+    .day-btn {
+      flex: 1;
+      padding: 8px 0;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      background: white;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      color: var(--text-muted);
+    }
+
+    .day-btn.selected {
+      background: var(--primary-color);
+      color: white;
+      border-color: var(--primary-color);
+    }
+
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+    }
+
+    .submit-btn {
+      width: 100%;
+      padding: 12px;
+      background: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .submit-btn:hover {
+      background: var(--primary-hover);
+    }
+
+    .empty-state {
+      text-align: center;
+      color: var(--text-muted);
+      padding: 30px 0;
+      font-size: 0.9rem;
+    }
+
+    /* Toast Notification */
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1F2937;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      display: none;
+      z-index: 1000;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+    <!-- Header -->
+    <header>
+      <div class="header-top">
+        <h1 class="app-title">My Routine</h1>
+        <span class="date-display" id="currentDateDisplay"></span>
+      </div>
+      <div class="progress-card">
+        <div class="progress-info">
+          <span>오늘의 달성도</span>
+          <span id="progressText">0%</span>
+        </div>
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill" id="progressBarFill"></div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav class="tab-bar">
+      <button class="tab-btn active" onclick="switchTab('dashboardView', this)">오늘의 루틴</button>
+      <button class="tab-btn" onclick="switchTab('addRoutineView', this)">루틴 추가</button>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main>
+      <!-- 1. 하루 루틴 화면 (대시보드) -->
+      <section id="dashboardView" class="view-section active">
+        <div class="section-title">
+          <span>할 일 목록</span>
+          <button class="speak-btn" id="speakAllBtn" onclick="toggleSpeakRoutines()">
+            🔊 전체 읽어주기
+          </button>
+        </div>
+        <ul class="routine-list" id="routineList">
+          <!-- JS로 동적 생성 -->
+        </ul>
+      </section>
+
+      <!-- 2. 루틴 추가 화면 -->
+      <section id="addRoutineView" class="view-section">
+        <div class="section-title">새 루틴 추가</div>
+        <form id="routineForm" onsubmit="handleRoutineSubmit(event)">
+          <div class="form-group">
+            <label for="routineTitle">루틴 이름</label>
+            <input type="text" id="routineTitle" class="form-control" placeholder="예: 아침 영양제 먹기" required />
+          </div>
+
+          <div class="form-group">
+            <label for="routineCategory">카테고리</label>
+            <select id="routineCategory" class="form-control">
+              <option value="건강">건강</option>
+              <option value="운동">운동</option>
+              <option value="자기개발">자기개발</option>
+              <option value="생활">생활</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="routineTime">시간 설정</label>
+            <input type="time" id="routineTime" class="form-control" value="08:00" required />
+          </div>
+
+          <div class="form-group">
+            <label>반복 요일</label>
+            <div class="days-selector">
+              <button type="button" class="day-btn selected" data-day="1">월</button>
+              <button type="button" class="day-btn selected" data-day="2">화</button>
+              <button type="button" class="day-btn selected" data-day="3">수</button>
+              <button type="button" class="day-btn selected" data-day="4">목</button>
+              <button type="button" class="day-btn selected" data-day="5">금</button>
+              <button type="button" class="day-btn selected" data-day="6">토</button>
+              <button type="button" class="day-btn selected" data-day="7">일</button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="checkbox-group">
+              <input type="checkbox" id="notificationEnabled" checked />
+              <span>알림(Notification) 받기</span>
+            </label>
+          </div>
+
+          <button type="submit" class="submit-btn">저장하기</button>
+        </form>
+      </section>
+    </main>
+  </div>
+
+  <div id="toast" class="toast">알림 메시지</div>
+
+  <script>
+    // --- 데이터 상태 (JSON 스키마 반영) ---
+    let appData = {
+      routines: [],
+      routineLogs: []
+    };
+
+    let isSpeaking = false;
+
+    // --- 초기화 ---
+    document.addEventListener("DOMContentLoaded", () => {
+      loadStorageData();
+      initDateDisplay();
+      initDaySelector();
+      requestNotificationPermission();
+      renderDashboard();
+    });
+
+    // 오늘 날짜 텍스트
+    function initDateDisplay() {
+      const today = new Date();
+      const options = { month: 'long', day: 'numeric', weekday: 'short' };
+      document.getElementById("currentDateDisplay").textContent = today.toLocaleDateString('ko-KR', options);
+    }
+
+    // 오늘 날짜 YYYY-MM-DD
+    function getTodayString() {
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, '0');
+      const day = String(today.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+
+    // 요일 클릭 토글
+    function initDaySelector() {
+      const dayBtns = document.querySelectorAll(".day-btn");
+      dayBtns.forEach(btn => {
+        btn.addEventListener("click", () => {
+          btn.classList.toggle("selected");
+        });
+      });
+    }
+
+    // --- 데이터 저장 및 로드 (LocalStorage) ---
+    function loadStorageData() {
+      const saved = localStorage.getItem("routine_app_data");
+      if (saved) {
+        appData = JSON.parse(saved);
+      } else {
+        appData = {
+          routines: [
+            {
+              id: "rt_101",
+              title: "아침 영양제 먹기",
+              category: "건강",
+              time: "08:00",
+              repeatDays: [1, 2, 3, 4, 5, 6, 7],
+              isNotificationEnabled: true,
+              createdAt: new Date().toISOString()
+            }
+          ],
+          routineLogs: [
+            {
+              id: `log_${getTodayString().replace(/-/g, '')}_101`,
+              routineId: "rt_101",
+              date: getTodayString(),
+              isCompleted: false,
+              completedAt: null
+            }
+          ]
+        };
+        saveStorageData();
+      }
+    }
+
+    function saveStorageData() {
+      localStorage.setItem("routine_app_data", JSON.stringify(appData));
+    }
+
+    // --- 대시보드 렌더링 ---
+    function renderDashboard() {
+      const todayStr = getTodayString();
+      const todayDayNum = new Date().getDay() === 0 ? 7 : new Date().getDay();
+
+      const todayRoutines = appData.routines.filter(r => r.repeatDays.includes(todayDayNum));
+      const listEl = document.getElementById("routineList");
+      listEl.innerHTML = "";
+
+      if (todayRoutines.length === 0) {
+        listEl.innerHTML = `<li class="empty-state">오늘 예정된 루틴이 없습니다.</li>`;
+        updateProgress(0, 0);
+        return;
+      }
+
+      let completedCount = 0;
+
+      todayRoutines.forEach(routine => {
+        let log = appData.routineLogs.find(l => l.routineId === routine.id && l.date === todayStr);
+        if (!log) {
+          log = {
+            id: `log_${todayStr.replace(/-/g, '')}_${routine.id}`,
+            routineId: routine.id,
+            date: todayStr,
+            isCompleted: false,
+            completedAt: null
+          };
+          appData.routineLogs.push(log);
+        }
+
+        if (log.isCompleted) completedCount++;
+
+        const li = document.createElement("li");
+        li.className = `routine-item ${log.isCompleted ? 'completed' : ''}`;
+        li.innerHTML = `
+          <input type="checkbox" class="routine-checkbox" ${log.isCompleted ? 'checked' : ''} onchange="toggleRoutine('${routine.id}')">
+          <div class="routine-details">
+            <div class="routine-title">${routine.title}</div>
+            <div class="routine-meta">
+              <span class="category-tag">${routine.category}</span>
+              <span>⏰ ${routine.time}</span>
+            </div>
+          </div>
+          <div class="action-btn-group">
+            <button class="icon-btn" title="읽어주기" onclick="speakSingleRoutine('${routine.title}', ${log.isCompleted})">🔊</button>
+            <button class="icon-btn delete-btn" title="삭제" onclick="deleteRoutine('${routine.id}')">삭제</button>
+          </div>
+        `;
+        listEl.appendChild(li);
+      });
+
+      saveStorageData();
+      updateProgress(completedCount, todayRoutines.length);
+    }
+
+    // 루틴 완료 토글
+    function toggleRoutine(routineId) {
+      const todayStr = getTodayString();
+      const log = appData.routineLogs.find(l => l.routineId === routineId && l.date === todayStr);
+
+      if (log) {
+        log.isCompleted = !log.isCompleted;
+        log.completedAt = log.isCompleted ? new Date().toISOString() : null;
+        renderDashboard();
+        
+        if (log.isCompleted) {
+          showToast("루틴을 완료했습니다! 🎉");
+        }
+      }
+    }
+
+    // 달성도 시각화
+    function updateProgress(completed, total) {
+      const percent = total === 0 ? 0 : Math.round((completed / total) * 100);
+      document.getElementById("progressText").textContent = `${percent}%`;
+      document.getElementById("progressBarFill").style.width = `${percent}%`;
+    }
+
+    // --- 음성 합성 (TTS: Text-to-Speech) 기능 ---
+    function speakText(text, onEndCallback = null) {
+      if (!('speechSynthesis' in window)) {
+        alert("현재 브라우저는 음성 말하기 기능을 지원하지 않습니다.");
+        return;
+      }
+
+      window.speechSynthesis.cancel(); // 기존 음성 중단
+
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'ko-KR';
+      utterance.rate = 0.95; // 읽기 속도 (0.1 ~ 10)
+
+      utterance.onend = () => {
+        if (onEndCallback) onEndCallback();
+      };
+
+      utterance.onerror = () => {
+        if (onEndCallback) onEndCallback();
+      };
+
+      window.speechSynthesis.speak(utterance);
+    }
+
+    // 개별 루틴 말하기
+    function speakSingleRoutine(title, isCompleted) {
+      const statusText = isCompleted ? "완료함" : "미완료";
+      speakText(`${title}, ${statusText} 상태입니다.`);
+    }
+
+    // 오늘 전체 루틴 브리핑 읽어주기 (토글 방식)
+    function toggleSpeakRoutines() {
+      const btn = document.getElementById("speakAllBtn");
+
+      if (isSpeaking) {
+        window.speechSynthesis.cancel();
+        isSpeaking = false;
+        btn.innerHTML = "🔊 전체 읽어주기";
+        btn.classList.remove("speaking");
+        return;
+      }
+
+      const todayDayNum = new Date().getDay() === 0 ? 7 : new Date().getDay();
+      const todayStr = getTodayString();
+      const todayRoutines = appData.routines.filter(r => r.repeatDays.includes(todayDayNum));
+
+      if (todayRoutines.length === 0) {
+        speakText("오늘 예정된 루틴이 없습니다.");
+        return;
+      }
+
+      const pendingList = [];
+      const completedList = [];
+
+      todayRoutines.forEach(routine => {
+        const log = appData.routineLogs.find(l => l.routineId === routine.id && l.date === todayStr);
+        if (log && log.isCompleted) {
+          completedList.push(routine.title);
+        } else {
+          pendingList.push(routine.title);
+        }
+      });
+
+      let speechScript = `오늘 진행할 루틴 브리핑입니다. 총 ${todayRoutines.length}개의 루틴 중, `;
+      
+      if (pendingList.length > 0) {
+        speechScript += `남은 할 일은 ${pendingList.join(', ')} 입니다. `;
+      } else {
+        speechScript += `모든 루틴을 완수하셨습니다! `;
+      }
+
+      if (completedList.length > 0) {
+        speechScript += `이미 완료한 루틴은 ${completedList.join(', ')} 입니다.`;
+      }
+
+      isSpeaking = true;
+      btn.innerHTML = "⏹️ 정지";
+      btn.classList.add("speaking");
+
+      speakText(speechScript, () => {
+        isSpeaking = false;
+        btn.innerHTML = "🔊 전체 읽어주기";
+        btn.classList.remove("speaking");
+      });
+    }
+
+    // --- 루틴 추가 ---
+    function handleRoutineSubmit(e) {
+      e.preventDefault();
+
+      const title = document.getElementById("routineTitle").value.trim();
+      const category = document.getElementById("routineCategory").value;
+      const time = document.getElementById("routineTime").value;
+      const isNotificationEnabled = document.getElementById("notificationEnabled").checked;
+
+      const dayBtns = document.querySelectorAll(".day-btn.selected");
+      const repeatDays = Array.from(dayBtns).map(btn => parseInt(btn.dataset.day));
+
+      if (repeatDays.length === 0) {
+        alert("최소 하나 이상의 요일을 선택해주세요.");
+        return;
+      }
+
+      const newRoutine = {
+        id: `rt_${Date.now()}`,
+        title,
+        category,
+        time,
+        repeatDays,
+        isNotificationEnabled,
+        createdAt: new Date().toISOString()
+      };
+
+      appData.routines.push(newRoutine);
+      saveStorageData();
+
+      document.getElementById("routineForm").reset();
+      document.querySelectorAll(".day-btn").forEach(btn => btn.classList.add("selected"));
+
+      showToast("새 루틴이 추가되었습니다.");
+      
+      const firstTabBtn = document.querySelectorAll(".tab-btn")[0];
+      switchTab('dashboardView', firstTabBtn);
+      renderDashboard();
+    }
+
+    // 루틴 삭제
+    function deleteRoutine(routineId) {
+      if (confirm("이 루틴을 삭제하시겠습니까?")) {
+        appData.routines = appData.routines.filter(r => r.id !== routineId);
+        appData.routineLogs = appData.routineLogs.filter(l => l.routineId !== routineId);
+        saveStorageData();
+        renderDashboard();
+        showToast("루틴이 삭제되었습니다.");
+      }
+    }
+
+    // --- UI 탭 전환 ---
+    function switchTab(viewId, btnEl) {
+      if (isSpeaking) {
+        window.speechSynthesis.cancel();
+        isSpeaking = false;
+        const btn = document.getElementById("speakAllBtn");
+        if (btn) {
+          btn.innerHTML = "🔊 전체 읽어주기";
+          btn.classList.remove("speaking");
+        }
+      }
+
+      document.querySelectorAll(".view-section").forEach(sec => sec.classList.remove("active"));
+      document.querySelectorAll(".tab-btn").forEach(btn => btn.classList.remove("active"));
+
+      document.getElementById(viewId).classList.add("active");
+      btnEl.classList.add("active");
+    }
+
+    // --- 알림 (Web Notification) ---
+    function requestNotificationPermission() {
+      if ("Notification" in window && Notification.permission !== "granted") {
+        Notification.requestPermission();
+      }
+    }
+
+    function showToast(message) {
+      const toast = document.getElementById("toast");
+      toast.textContent = message;
+      toast.style.display = "block";
+      setTimeout(() => {
+        toast.style.display = "none";
+      }, 2500);
+    }
+  </script>
+</body>
+</html>
